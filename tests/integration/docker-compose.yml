@@ -1,0 +1,12 @@
+version: '3'
+services:
+  confluence:
+    image: atlassian/confluence-server:latest
+    container_name: confluence_integration_test
+    ports:
+      - "8090:8090"
+    volumes:
+      - confluence_data:/var/atlassian/application-data/confluence
+
+volumes:
+  confluence_data:

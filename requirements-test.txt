@@ -1,0 +1,3 @@
+pytest
+atlassian-python-api
+docker
