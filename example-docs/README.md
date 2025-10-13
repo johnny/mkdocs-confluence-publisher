@@ -22,14 +22,41 @@ To run the example project and test the development version of the plugin:
    CONFLUENCE_URL=<your_confluence_url>
    CONFLUENCE_USERNAME=<your_username>
    CONFLUENCE_API_TOKEN=<your_api_token>
+   CONFLUENCE_SPACE_KEY=<your_space_key>
+   CONFLUENCE_PARENT_PAGE_ID=<your_parent_page_id>
    ```
 
-3. **Update `mkdocs.yml`:**
-   In `example-docs/mkdocs.yml`, update the `space_key` and `parent_page_id` with your Confluence details.
-
-4. **Run the build script:**
+3. **Run the build script:**
    ```bash
    ./run-example.sh
    ```
 
 This will install the plugin in editable mode and build the site, publishing the content to your Confluence instance.
+
+### Recording and Replaying Interactions
+
+For faster and more reliable testing, you can record interactions with the Confluence API and replay them locally.
+
+#### Recording
+
+To record the interactions:
+
+1. **Ensure your `.env` file is configured** as described above.
+
+2. **Run the recording script:**
+   ```bash
+   ./run-record.sh
+   ```
+
+This will start a proxy server, run the `mkdocs build`, and save the interactions to the `tapes/` directory.
+
+#### Replaying
+
+To replay the recorded interactions:
+
+1. **Run the replaying script:**
+   ```bash
+   ./run-replay.sh
+   ```
+
+This will use the recorded interactions from the `tapes/` directory to run the build, without needing to connect to the actual Confluence instance. This is useful for running tests in a CI/CD environment where you may not have access to a live Confluence instance.

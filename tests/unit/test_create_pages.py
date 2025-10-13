@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call
 from mkdocs.structure.nav import Page, Section
 
 from mkdocs_confluence_publisher.create_pages import PageCreator
-from mkdocs_confluence_publisher.types import ConfluencePage
+from mkdocs_confluence_publisher.custom_types import ConfluencePage
 
 
 class TestCreatePages(unittest.TestCase):

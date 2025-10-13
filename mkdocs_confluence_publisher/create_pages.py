@@ -1,6 +1,6 @@
 import logging
 from mkdocs.structure.nav import Section, Page
-from .types import MD_to_Page, ConfluencePage
+from .custom_types import MD_to_Page, ConfluencePage
 
 logger = logging.getLogger('mkdocs.plugins.confluence_publisher.create_pages')
 

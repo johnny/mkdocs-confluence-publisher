@@ -4,7 +4,7 @@ from typing import List, Tuple
 import re
 import mistune
 from md2cf.confluence_renderer import ConfluenceRenderer
-from .types import MD_to_Page, ConfluencePage
+from .custom_types import MD_to_Page, ConfluencePage
 
 logger = logging.getLogger('mkdocs.plugins.confluence_publisher.store_page')
 #logger.setLevel(logging.DEBUG)

@@ -11,7 +11,7 @@ from mkdocs.structure.nav import Page
 from .create_pages import create_pages
 from .update_page import update_page
 from .upload_attachments import upload_attachments
-from .types import MD_to_Page
+from .custom_types import MD_to_Page
 
 class ConfluencePublisherPlugin(BasePlugin):
     config_scheme = (
