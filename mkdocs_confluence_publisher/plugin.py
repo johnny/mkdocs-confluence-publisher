@@ -89,8 +89,12 @@ class ConfluencePublisherPlugin(BasePlugin):
     def on_post_page(self, output, page, config):
         if not self.enabled:
             return output
-
-        page_id = self.md_to_page.get(page.file.src_path).id
+            
+        confluence_page= self.md_to_page.get(page.file.src_path)
+        if confluence_page is None:
+            self.logger.error(f"No Confluence page mapping found for {page.file.src_path}")
+            return output
+        page_id =confluence_page.id
         attachments = self.page_attachments.get(page.file.src_path, [])
         self.logger.debug(f"Uploading attachments {attachments} for page: {page.file.src_path}, Page ID: {page_id}")
         upload_attachments(page_id, attachments, self.confluence, self.config['space_key'])
