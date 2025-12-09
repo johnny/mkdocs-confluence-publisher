@@ -29,6 +29,7 @@ class PageCreator:
         self.config = config
 
     def create_pages_in_space(self, items, parent_id, md_to_page: MD_to_Page):
+        index_item = None
         for item in items:
             if isinstance(item, Page) and item.title is None:
                 logger.debug(f"Page title is None, attempting to read source for: {item.file.src_path}")
@@ -38,42 +39,62 @@ class PageCreator:
                 else:
                     logger.warning("Config not available, cannot read source to determine title.")
 
-            page_title = f"{self.prefix}{item.title}{self.suffix}"
-            logger.debug(f"Processing item: {page_title}")
+            if isinstance(item, Page) and item.is_index:
+                index_item = item
 
-            existing_page = self.confluence_client.get_page_by_title(self.space_key, page_title)
+        current_parent_id = parent_id
 
-            if existing_page:
-                logger.debug(f"Page already exists: {page_title}")
-                page_id = existing_page['id']
-            else:
-                if isinstance(item, Section):
-                    body = '<ac:structured-macro ac:name="children" />'
-                    logger.info(f"Creating section page: {page_title}")
-                else:
-                    body = ""
-                    logger.info(f"Creating empty page: {page_title}")
+        if index_item:
+            logger.debug(f"Found index page: {index_item.title}, processing it first")
+            page_id = self._process_item(index_item, parent_id, md_to_page)
+            if page_id:
+                current_parent_id = page_id
 
-                try:
-                    new_page = self.confluence_client.create_page(
-                        space=self.space_key,
-                        title=page_title,
-                        body=body,
-                        parent_id=parent_id
-                    )
-                    page_id = new_page['id']
-                except Exception as e:
-                    logger.error(f"Error creating page {page_title}: {str(e)}")
-                    continue
+        for item in items:
+            if item == index_item:
+                continue
 
-            if isinstance(item, Page):
-                md_to_page[item.file.src_path] = ConfluencePage(id=page_id, title=page_title)
-                logger.debug(f"Mapped URL {item.url} to page ID {page_id}")
+            page_id = self._process_item(item, current_parent_id, md_to_page)
 
             if isinstance(item, Section) and item.children:
-                logger.debug(f"Processing children of {page_title}")
+                logger.debug(f"Processing children of {item.title}")
                 self.create_pages_in_space(item.children, page_id, md_to_page)
         return md_to_page
+
+    def _process_item(self, item, parent_id, md_to_page: MD_to_Page):
+        page_title = f"{self.prefix}{item.title}{self.suffix}"
+        logger.debug(f"Processing item: {page_title}")
+
+        existing_page = self.confluence_client.get_page_by_title(self.space_key, page_title)
+
+        if existing_page:
+            logger.debug(f"Page already exists: {page_title}")
+            page_id = existing_page['id']
+        else:
+            if isinstance(item, Section):
+                body = '<ac:structured-macro ac:name="children" />'
+                logger.info(f"Creating section page: {page_title}")
+            else:
+                body = ""
+                logger.info(f"Creating empty page: {page_title}")
+
+            try:
+                new_page = self.confluence_client.create_page(
+                    space=self.space_key,
+                    title=page_title,
+                    body=body,
+                    parent_id=parent_id
+                )
+                page_id = new_page['id']
+            except Exception as e:
+                logger.error(f"Error creating page {page_title}: {str(e)}")
+                return None
+
+        if isinstance(item, Page):
+            md_to_page[item.file.src_path] = ConfluencePage(id=page_id, title=page_title)
+            logger.debug(f"Mapped URL {item.url} to page ID {page_id}")
+
+        return page_id
 
 def create_pages(confluence, items, prefix, suffix, space_key, parent_id, md_to_page: MD_to_Page, config=None):
     confluence_client = ConfluenceClient(confluence)
