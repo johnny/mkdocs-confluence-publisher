@@ -65,3 +65,5 @@ To replay the recorded interactions:
    ```
 
 This will use the recorded interactions from the `tapes/` directory to run the build, without needing to connect to the actual Confluence instance. This is useful for running tests in a CI/CD environment where you may not have access to a live Confluence instance.
+
+Note that the replay script uses **exact request matching**. If you modify the documentation content, the replay will likely fail because the requests sent by the builder will no longer match the recorded requests on the tape. In this case, you will need to re-record the interactions using `run-record.sh`.

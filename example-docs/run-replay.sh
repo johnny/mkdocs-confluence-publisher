@@ -50,7 +50,7 @@ fi
 
 # Start proxay in replay mode
 echo "Starting proxay in replay mode..."
-proxay --mode replay --port ${PROXAY_PORT} --tapes-dir ${TAPES_DIR} &
+proxay --mode replay --port ${PROXAY_PORT} --tapes-dir ${TAPES_DIR} --exact-request-matching &
 PROXAY_PID=$!
 
 # Wait for proxay to start
