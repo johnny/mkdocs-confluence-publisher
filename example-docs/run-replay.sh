@@ -111,6 +111,9 @@ echo "Using CONFLUENCE_URL: $CONFLUENCE_URL"
 # Run mkdocs with verbose logging and capture exit code
 if ! mkdocs build -v; then
   echo "Error: mkdocs build failed."
+  # Disable cleanup trap so user can inspect the running container
+  trap - EXIT
+  echo "Mockserver container '$CONTAINER_NAME' left running for debugging."
   echo "Fetching Mockserver logs to diagnose potential request mismatches..."
   echo "----------------------------------------------------------------"
   docker logs --tail 200 "$CONTAINER_NAME"

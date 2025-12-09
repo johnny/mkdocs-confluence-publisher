@@ -77,4 +77,5 @@ interactions using `./run-record.sh`.
 If the replay fails, the script will automatically output the Mockserver logs.
 Review these logs to identify why a request did not match the expectations.
 Look for "Request not matched" messages which detail the incoming request and
-the closest matching expectation.
+the closest matching expectation. The Mockserver container will be left running
+to allow further inspection.
