@@ -50,6 +50,11 @@ To record a new set of interactions, run the following command:
 This will start a Mockserver instance, proxy requests to the real Confluence
 API, and save the interactions to `mockserver/expectations.json`.
 
+If your Confluence instance uses a self-signed certificate, you can provide a
+custom CA bundle. Place a file named `custom-ca-bundle.crt` in the
+`example-docs/` directory. The script will automatically detect this file and
+configure Mockserver to trust the certificates contained within it.
+
 ### Replaying
 
 To replay a previously recorded set of interactions, run the following command:
@@ -61,3 +66,10 @@ To replay a previously recorded set of interactions, run the following command:
 This will start a Mockserver instance, load the recorded interactions from
 `mockserver/expectations.json`, and then run the `mkdocs build` command
 against the mocked API.
+
+**Note:** The replay process relies on strict matching of HTTP requests. Any
+changes to the documentation source files (even minor typo fixes) will result
+in different HTTP request bodies (e.g., page content updates). Since these
+new requests won't match the recorded expectations, the build will fail with
+an HTTP 404 error from Mockserver. To fix this, you must re-record the
+interactions using `./run-record.sh`.
