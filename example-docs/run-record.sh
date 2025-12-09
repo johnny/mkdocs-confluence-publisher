@@ -10,6 +10,7 @@ ENV_FILE=".env"
 MOCKSERVER_DIR="mockserver"
 MOCKSERVER_EXPECTATIONS_FILE="${MOCKSERVER_DIR}/expectations.json"
 CUSTOM_CA_BUNDLE="custom-ca-bundle.crt"
+CONTAINER_NAME="mockserver"
 
 # --- Functions ---
 function check_env_var() {
@@ -34,7 +35,6 @@ fi
 if [ -f "$ENV_FILE" ]; then
   echo "Loading environment variables from ${ENV_FILE}"
   # We export them so the python script can see them later
-  # Using awk to avoid xargs issues with quotes/spaces if simple
   export $(grep -v '^#' "$ENV_FILE" | xargs)
 fi
 
@@ -64,27 +64,42 @@ if url_str:
 ")
 
 # Start Mockserver
-echo "Starting Mockserver..."
-DOCKER_ARGS=""
-if [ -f "$CUSTOM_CA_BUNDLE" ]; then
-  echo "Detected $CUSTOM_CA_BUNDLE, configuring Mockserver to use it..."
-  DOCKER_ARGS="$DOCKER_ARGS -v $(pwd)/$CUSTOM_CA_BUNDLE:/custom-ca-bundle.crt"
-  DOCKER_ARGS="$DOCKER_ARGS -e MOCKSERVER_FORWARD_PROXY_TLS_X509_CERTIFICATES_TRUST_MANAGER_TYPE=CUSTOM"
-  DOCKER_ARGS="$DOCKER_ARGS -e MOCKSERVER_FORWARD_PROXY_TLS_CUSTOM_TRUST_X509_CERTIFICATES=/custom-ca-bundle.crt"
+echo "Checking for existing Mockserver..."
+STARTED_CONTAINER="false"
+
+if [ "$(docker container inspect -f '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null)" = "true" ]; then
+  echo "Mockserver '$CONTAINER_NAME' is already running. Resetting..."
+  if [ -f "$CUSTOM_CA_BUNDLE" ]; then
+    echo "Warning: Reusing existing Mockserver container. If you added/changed '$CUSTOM_CA_BUNDLE', you must stop the container to apply changes."
+  fi
+  # Reset later
+else
+  echo "Starting Mockserver..."
+  # Clean up stopped container if it exists
+  docker rm -f "$CONTAINER_NAME" > /dev/null 2>&1 || true
+
+  DOCKER_ARGS=""
+  if [ -f "$CUSTOM_CA_BUNDLE" ]; then
+    echo "Detected $CUSTOM_CA_BUNDLE, configuring Mockserver to use it..."
+    DOCKER_ARGS="$DOCKER_ARGS -v $(pwd)/$CUSTOM_CA_BUNDLE:/custom-ca-bundle.crt"
+    DOCKER_ARGS="$DOCKER_ARGS -e MOCKSERVER_FORWARD_PROXY_TLS_X509_CERTIFICATES_TRUST_MANAGER_TYPE=CUSTOM"
+    DOCKER_ARGS="$DOCKER_ARGS -e MOCKSERVER_FORWARD_PROXY_TLS_CUSTOM_TRUST_X509_CERTIFICATES=/custom-ca-bundle.crt"
+  fi
+
+  docker run -d --rm --name "$CONTAINER_NAME" \
+    -p 1080:1080 \
+    --env-file "$ENV_FILE" \
+    $DOCKER_ARGS \
+    mockserver/mockserver:mockserver-5.11.2 \
+    -serverPort 1080
+
+  STARTED_CONTAINER="true"
 fi
 
-# Ensure previous container is gone
-docker rm -f mockserver > /dev/null 2>&1 || true
-
-# Trap to ensure cleanup
-trap "echo 'Stopping Mockserver...'; docker stop mockserver > /dev/null 2>&1" EXIT
-
-docker run -d --rm --name mockserver \
-  -p 1080:1080 \
-  --env-file "$ENV_FILE" \
-  $DOCKER_ARGS \
-  mockserver/mockserver:mockserver-5.11.2 \
-  -serverPort 1080
+# Trap to ensure cleanup ONLY if we started it
+if [ "$STARTED_CONTAINER" = "true" ]; then
+  trap "echo 'Stopping Mockserver...'; docker stop $CONTAINER_NAME > /dev/null 2>&1" EXIT
+fi
 
 # Wait for Mockserver to be ready
 echo "Waiting for Mockserver to be ready..."
@@ -122,6 +137,8 @@ echo "Running mkdocs build..."
 export CONFLUENCE_URL_ORIGINAL=$CONFLUENCE_URL
 # Construct the proxy URL, keeping the original path
 export CONFLUENCE_URL="http://localhost:1080${CONF_PATH}"
+echo "Using CONFLUENCE_URL: $CONFLUENCE_URL"
+
 mkdocs build
 
 # Save the recorded expectations

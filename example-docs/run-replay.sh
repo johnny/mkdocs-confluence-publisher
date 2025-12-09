@@ -9,6 +9,7 @@
 ENV_FILE=".env"
 MOCKSERVER_DIR="mockserver"
 MOCKSERVER_EXPECTATIONS_FILE="${MOCKSERVER_DIR}/expectations.json"
+CONTAINER_NAME="mockserver"
 
 # --- Functions ---
 function check_env_var() {
@@ -40,26 +41,52 @@ check_env_var "CONFLUENCE_USERNAME"
 check_env_var "CONFLUENCE_API_TOKEN"
 check_env_var "CONFLUENCE_SPACE_KEY"
 check_env_var "CONFLUENCE_PARENT_PAGE_ID"
+check_env_var "CONFLUENCE_URL"
+
+# Parse CONFLUENCE_URL to extract path
+eval $(python3 -c "
+import os, urllib.parse
+url_str = os.environ.get('CONFLUENCE_URL')
+if url_str:
+    url = urllib.parse.urlparse(url_str)
+    path = url.path
+    print(f\"CONF_PATH='{path}'\")
+")
 
 # Start Mockserver
-echo "Starting Mockserver..."
-# Ensure previous container is gone
-docker rm -f mockserver > /dev/null 2>&1 || true
+echo "Checking for existing Mockserver..."
+STARTED_CONTAINER="false"
 
-# Trap to ensure cleanup
-trap "echo 'Stopping Mockserver...'; docker stop mockserver > /dev/null 2>&1" EXIT
+if [ "$(docker container inspect -f '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null)" = "true" ]; then
+  echo "Mockserver '$CONTAINER_NAME' is already running. Resetting..."
+  # Reset happens via API later, but we can do a quick check here if we want
+else
+  echo "Starting Mockserver..."
+  # Clean up stopped container if it exists
+  docker rm -f "$CONTAINER_NAME" > /dev/null 2>&1 || true
 
-docker run -d --rm --name mockserver \
-  -p 1080:1080 \
-  --env-file "$ENV_FILE" \
-  mockserver/mockserver:mockserver-5.11.2 \
-  -serverPort 1080
+  docker run -d --rm --name "$CONTAINER_NAME" \
+    -p 1080:1080 \
+    --env-file "$ENV_FILE" \
+    mockserver/mockserver:mockserver-5.11.2 \
+    -serverPort 1080
+
+  STARTED_CONTAINER="true"
+fi
+
+# Trap to ensure cleanup ONLY if we started it
+if [ "$STARTED_CONTAINER" = "true" ]; then
+  trap "echo 'Stopping Mockserver...'; docker stop $CONTAINER_NAME > /dev/null 2>&1" EXIT
+fi
 
 # Wait for Mockserver to be ready
 echo "Waiting for Mockserver to be ready..."
 until curl -s http://localhost:1080/mockserver/status > /dev/null; do
   sleep 1
 done
+
+# Reset to clear any previous state
+curl -v -X PUT "http://localhost:1080/mockserver/reset"
 
 # Load the recorded expectations
 if [ ! -f "$MOCKSERVER_EXPECTATIONS_FILE" ]; then
@@ -78,47 +105,9 @@ fi
 
 # Run the mkdocs build, pointing to the Mockserver
 echo "Running mkdocs build..."
-# We append a dummy path prefix because run-record.sh uses path preservation logic
-# and real Confluence often is at /wiki. However, recorded expectations contain the path.
-# If we set CONFLUENCE_URL="http://localhost:1080", the plugin will use that as base.
-# If expectations were recorded with /wiki/rest/api/..., we need to ensure the plugin hits that.
-# In run-record.sh: export CONFLUENCE_URL="http://localhost:1080${CONF_PATH}"
-# But here we don't have CONF_PATH unless we parse original URL again.
-# But wait, replay doesn't talk to real confluence.
-# The user's request is "Ensure that the replay fails... purely by looking into the http traffic".
-# If the expectations have strict matching, we must ensure the plugin sends exact same requests.
-# If the plugin is configured with `CONFLUENCE_URL` pointing to mockserver, it will construct URLs.
-# If I recorded against `https://confluence.example.com/wiki`, the plugin was using that URL.
-# The recorder captures path `/wiki/rest/...`.
-# So when replaying, we must ensure the plugin generates `/wiki/rest/...`.
-# This requires `CONFLUENCE_URL` to include `/wiki` if the original did.
-# I should probably do the same URL parsing to get the path, if `CONFLUENCE_URL` is available.
-# But `run-replay.sh` says it needs `CONFLUENCE_USERNAME`, `API_TOKEN` etc.
-# It doesn't strictly check `CONFLUENCE_URL` in the original script, but `mkdocs` might need it or the plugin uses it.
-# The original script just did `export CONFLUENCE_URL="http://localhost:1080"`.
-# If `CONFLUENCE_URL` was `http://localhost:1080`, then plugin appends `/rest/api/...`.
-# If the recorded path was `/wiki/rest/api/...`, then we have a mismatch if we don't include `/wiki`.
-# But `run-record.sh` changes `CONFLUENCE_URL` to `http://localhost:1080` BEFORE running mkdocs?
-# No, in my modified `run-record.sh`:
-# `export CONFLUENCE_URL="http://localhost:1080${CONF_PATH}"`
-# So `run-record.sh` DOES preserve the path.
-# So `run-replay.sh` MUST also preserve the path if it wants to match the recording.
-# So I should parse `CONFLUENCE_URL` here too.
-
-# Check CONFLUENCE_URL
-check_env_var "CONFLUENCE_URL"
-
-# Parse CONFLUENCE_URL to extract path
-eval $(python3 -c "
-import os, urllib.parse
-url_str = os.environ.get('CONFLUENCE_URL')
-if url_str:
-    url = urllib.parse.urlparse(url_str)
-    path = url.path
-    print(f\"CONF_PATH='{path}'\")
-")
-
 export CONFLUENCE_URL="http://localhost:1080${CONF_PATH}"
+echo "Using CONFLUENCE_URL: $CONFLUENCE_URL"
+
 mkdocs build
 
 echo "--- Replay complete ---"
