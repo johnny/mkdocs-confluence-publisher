@@ -9,6 +9,14 @@ ENV_FILE=".env"
 TAPES_DIR="tapes"
 PROXAY_PORT=8082
 
+# --- Argument Parsing ---
+DEBUG_MODE=0
+for arg in "$@"; do
+  if [ "$arg" == "--debug" ]; then
+    DEBUG_MODE=1
+  fi
+done
+
 # --- Functions ---
 function check_env_var() {
   VAR_NAME=$1
@@ -50,7 +58,16 @@ fi
 
 # Start proxay in replay mode
 echo "Starting proxay in replay mode..."
-proxay --mode replay --port ${PROXAY_PORT} --tapes-dir ${TAPES_DIR} &
+
+# Kill any existing process on the proxay port
+lsof -ti:${PROXAY_PORT} | xargs kill -9 2>/dev/null || true
+
+PROXAY_ARGS="--mode replay --port ${PROXAY_PORT} --tapes-dir ${TAPES_DIR} --exact-request-matching"
+if [ $DEBUG_MODE -eq 1 ]; then
+    PROXAY_ARGS="$PROXAY_ARGS --debug-matcher-fails"
+fi
+
+proxay $PROXAY_ARGS &
 PROXAY_PID=$!
 
 # Wait for proxay to start
@@ -60,9 +77,17 @@ sleep 2
 echo "Running mkdocs build..."
 export CONFLUENCE_URL="http://localhost:${PROXAY_PORT}"
 mkdocs build
+MKDOCS_EXIT_CODE=$?
 
-# Stop proxay
-echo "Stopping proxay..."
-kill ${PROXAY_PID}
+# Stop proxay if not in debug mode, or if build succeeded (optional, but requested behavior implies debugging failure)
+if [ $DEBUG_MODE -eq 1 ] && [ $MKDOCS_EXIT_CODE -ne 0 ]; then
+    echo "Build failed in debug mode. Proxay is still running with PID $PROXAY_PID."
+    echo "Inspect the logs above for matcher failures."
+    echo "Manually kill proxay when done: kill $PROXAY_PID"
+else
+    echo "Stopping proxay..."
+    kill ${PROXAY_PID}
+fi
 
 echo "--- Replay complete ---"
+exit $MKDOCS_EXIT_CODE
