@@ -19,7 +19,9 @@ class TestProtectedMode(unittest.TestCase):
         # Setup the mock Confluence instance
         mock_confluence_instance = MockConfluence.return_value
         mock_confluence_instance.username = 'testuser'
-        mock_confluence_instance.get_user_details_by_username.return_value = {'accountId': 'account-123'}
+
+        # Mock get("rest/api/user/current") to return accountId
+        mock_confluence_instance.get.side_effect = lambda url, absolute=False: {'accountId': 'account-123'} if url == 'rest/api/user/current' else {}
 
         # Mock environment variables
         import os
@@ -64,6 +66,14 @@ class TestProtectedMode(unittest.TestCase):
 
         mock_confluence_instance = MockConfluence.return_value
         mock_confluence_instance.username = 'testuser'
+
+        # Mock get current user failure for server
+        def mock_get(url, absolute=False):
+            if url == 'rest/api/user/current':
+                 raise Exception("Not found")
+            return {}
+        mock_confluence_instance.get.side_effect = mock_get
+
         mock_confluence_instance.get_user_details_by_username.return_value = {'username': 'testuser', 'userKey': 'key-123'}
 
         import os
@@ -104,7 +114,7 @@ class TestProtectedMode(unittest.TestCase):
 
         mock_confluence_instance = MockConfluence.return_value
         mock_confluence_instance.username = 'testuser'
-        mock_confluence_instance.get_user_details_by_username.return_value = {'accountId': 'account-123'}
+        mock_confluence_instance.get.side_effect = lambda url, absolute=False: {'accountId': 'account-123'} if url == 'rest/api/user/current' else {}
 
         import os
         with unittest.mock.patch.dict(os.environ, {
@@ -136,18 +146,16 @@ class TestProtectedMode(unittest.TestCase):
         update_page_restrictions(mock_confluence, '111', [{'accountId': 'acc-123'}])
 
         mock_confluence.put.assert_called_once_with(
-            'content/111/restriction/byOperation/update',
-            data={
+            'rest/experimental/content/111/restriction',
+            data=[{
                 "operation": "update",
                 "restrictions": {
-                    "user": {
-                        "results": [{"type": "known", "accountId": "acc-123"}]
-                    },
-                    "group": {
-                        "results": []
-                    }
+                    "user": [{"type": "known", "accountId": "acc-123"}],
+                    "group": []
                 }
-            }
+            }],
+            headers={"Content-Type": "application/json"},
+            absolute=True
         )
 
     def test_update_page_restrictions_impl_multiple(self):
@@ -156,21 +164,19 @@ class TestProtectedMode(unittest.TestCase):
         update_page_restrictions(mock_confluence, '111', users)
 
         mock_confluence.put.assert_called_once_with(
-            'content/111/restriction/byOperation/update',
-            data={
+            'rest/experimental/content/111/restriction',
+            data=[{
                 "operation": "update",
                 "restrictions": {
-                    "user": {
-                        "results": [
-                            {"type": "known", "accountId": "acc-123"},
-                            {"type": "known", "accountId": "acc-456"}
-                        ]
-                    },
-                    "group": {
-                        "results": []
-                    }
+                    "user": [
+                        {"type": "known", "accountId": "acc-123"},
+                        {"type": "known", "accountId": "acc-456"}
+                    ],
+                    "group": []
                 }
-            }
+            }],
+            headers={"Content-Type": "application/json"},
+            absolute=True
         )
 
 if __name__ == '__main__':
