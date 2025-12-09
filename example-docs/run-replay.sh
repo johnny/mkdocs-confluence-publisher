@@ -95,7 +95,30 @@ if [ ! -f "$MOCKSERVER_EXPECTATIONS_FILE" ]; then
 fi
 
 echo "Loading recorded expectations from ${MOCKSERVER_EXPECTATIONS_FILE}..."
-curl -v -X PUT "http://localhost:1080/mockserver/expectation" -d "@${MOCKSERVER_EXPECTATIONS_FILE}"
+# Remove 'secure' field from expectations to ignore SSL mismatches during replay
+FILTERED_EXPECTATIONS=$(mktemp)
+python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    if isinstance(data, list):
+        for exp in data:
+            if 'httpRequest' in exp:
+                exp['httpRequest'].pop('secure', None)
+    elif isinstance(data, dict):
+        if 'httpRequest' in data:
+            data['httpRequest'].pop('secure', None)
+    print(json.dumps(data))
+except Exception as e:
+    sys.exit(1)
+" < "${MOCKSERVER_EXPECTATIONS_FILE}" > "$FILTERED_EXPECTATIONS"
+
+if [ -s "$FILTERED_EXPECTATIONS" ]; then
+  curl -v -X PUT "http://localhost:1080/mockserver/expectation" -d "@$FILTERED_EXPECTATIONS"
+else
+  echo "Error: Failed to process expectations file."
+fi
+rm "$FILTERED_EXPECTATIONS"
 
 # Install the plugin in editable mode if not already installed
 if ! pip show mkdocs-confluence-publisher > /dev/null 2>&1; then
@@ -114,10 +137,8 @@ if ! mkdocs build -v; then
   # Disable cleanup trap so user can inspect the running container
   trap - EXIT
   echo "Mockserver container '$CONTAINER_NAME' left running for debugging."
-  echo "Fetching Mockserver logs to diagnose potential request mismatches..."
-  echo "----------------------------------------------------------------"
-  docker logs --tail 200 "$CONTAINER_NAME"
-  echo "----------------------------------------------------------------"
+  echo "You can check the logs by running:"
+  echo "  docker logs $CONTAINER_NAME"
   exit 1
 fi
 
