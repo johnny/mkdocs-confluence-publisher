@@ -108,6 +108,14 @@ echo "Running mkdocs build..."
 export CONFLUENCE_URL="http://localhost:1080${CONF_PATH}"
 echo "Using CONFLUENCE_URL: $CONFLUENCE_URL"
 
-mkdocs build
+# Run mkdocs with verbose logging and capture exit code
+if ! mkdocs build -v; then
+  echo "Error: mkdocs build failed."
+  echo "Fetching Mockserver logs to diagnose potential request mismatches..."
+  echo "----------------------------------------------------------------"
+  docker logs --tail 200 "$CONTAINER_NAME"
+  echo "----------------------------------------------------------------"
+  exit 1
+fi
 
 echo "--- Replay complete ---"

@@ -73,3 +73,8 @@ in different HTTP request bodies (e.g., page content updates). Since these
 new requests won't match the recorded expectations, the build will fail with
 an HTTP 404 error from Mockserver. To fix this, you must re-record the
 interactions using `./run-record.sh`.
+
+If the replay fails, the script will automatically output the Mockserver logs.
+Review these logs to identify why a request did not match the expectations.
+Look for "Request not matched" messages which detail the incoming request and
+the closest matching expectation.
