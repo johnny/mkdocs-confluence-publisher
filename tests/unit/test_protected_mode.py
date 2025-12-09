@@ -19,9 +19,15 @@ class TestProtectedMode(unittest.TestCase):
         # Setup the mock Confluence instance
         mock_confluence_instance = MockConfluence.return_value
         mock_confluence_instance.username = 'testuser'
+        mock_confluence_instance.url = 'http://test/wiki'
+        mock_confluence_instance.url_joiner.side_effect = lambda u, p: f"{u}/{p}"
 
-        # Mock get("rest/api/user/current") to return accountId
-        mock_confluence_instance.get.side_effect = lambda url, absolute=False: {'accountId': 'account-123'} if url == 'rest/api/user/current' else {}
+        # Mock get(".../rest/api/user/current") to return accountId
+        def mock_get(url, absolute=False):
+            if url == 'http://test/wiki/rest/api/user/current':
+                return {'accountId': 'account-123'}
+            return {}
+        mock_confluence_instance.get.side_effect = mock_get
 
         # Mock environment variables
         import os
@@ -66,10 +72,12 @@ class TestProtectedMode(unittest.TestCase):
 
         mock_confluence_instance = MockConfluence.return_value
         mock_confluence_instance.username = 'testuser'
+        mock_confluence_instance.url = 'http://test/wiki'
+        mock_confluence_instance.url_joiner.side_effect = lambda u, p: f"{u}/{p}"
 
         # Mock get current user failure for server
         def mock_get(url, absolute=False):
-            if url == 'rest/api/user/current':
+            if url == 'http://test/wiki/rest/api/user/current':
                  raise Exception("Not found")
             return {}
         mock_confluence_instance.get.side_effect = mock_get
@@ -114,7 +122,14 @@ class TestProtectedMode(unittest.TestCase):
 
         mock_confluence_instance = MockConfluence.return_value
         mock_confluence_instance.username = 'testuser'
-        mock_confluence_instance.get.side_effect = lambda url, absolute=False: {'accountId': 'account-123'} if url == 'rest/api/user/current' else {}
+        mock_confluence_instance.url = 'http://test/wiki'
+        mock_confluence_instance.url_joiner.side_effect = lambda u, p: f"{u}/{p}"
+
+        def mock_get(url, absolute=False):
+            if url == 'http://test/wiki/rest/api/user/current':
+                return {'accountId': 'account-123'}
+            return {}
+        mock_confluence_instance.get.side_effect = mock_get
 
         import os
         with unittest.mock.patch.dict(os.environ, {
@@ -143,10 +158,13 @@ class TestProtectedMode(unittest.TestCase):
 
     def test_update_page_restrictions_impl(self):
         mock_confluence = MagicMock()
+        mock_confluence.url = "http://confluence.com"
+        mock_confluence.url_joiner.side_effect = lambda u, p: f"{u}/{p}"
+
         update_page_restrictions(mock_confluence, '111', [{'accountId': 'acc-123'}])
 
         mock_confluence.put.assert_called_once_with(
-            'rest/experimental/content/111/restriction',
+            'http://confluence.com/rest/experimental/content/111/restriction',
             data=[{
                 "operation": "update",
                 "restrictions": {
@@ -160,11 +178,14 @@ class TestProtectedMode(unittest.TestCase):
 
     def test_update_page_restrictions_impl_multiple(self):
         mock_confluence = MagicMock()
+        mock_confluence.url = "http://confluence.com"
+        mock_confluence.url_joiner.side_effect = lambda u, p: f"{u}/{p}"
+
         users = [{'accountId': 'acc-123'}, {'accountId': 'acc-456'}]
         update_page_restrictions(mock_confluence, '111', users)
 
         mock_confluence.put.assert_called_once_with(
-            'rest/experimental/content/111/restriction',
+            'http://confluence.com/rest/experimental/content/111/restriction',
             data=[{
                 "operation": "update",
                 "restrictions": {

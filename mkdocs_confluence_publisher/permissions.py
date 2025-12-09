@@ -12,7 +12,9 @@ def get_current_user_id(confluence) -> Dict[str, Any]:
     """
     # Attempt to get 'current' user directly, which is more reliable for Cloud
     try:
-        current_user = confluence.get("rest/api/user/current", absolute=True)
+        # Construct full URL for absolute=True
+        url = confluence.url_joiner(confluence.url, "rest/api/user/current")
+        current_user = confluence.get(url, absolute=True)
         if 'accountId' in current_user:
             return {'accountId': current_user['accountId']}
     except Exception as e:
@@ -63,7 +65,8 @@ def update_page_restrictions(confluence, page_id: str, user_id_dicts: List[Dict[
     ]
 
     # PUT /rest/experimental/content/{id}/restriction
-    url = f"rest/experimental/content/{page_id}/restriction"
+    path = f"rest/experimental/content/{page_id}/restriction"
+    url = confluence.url_joiner(confluence.url, path)
 
     try:
         logger.debug(f"Updating {restriction_type} restrictions for page {page_id} to users {user_id_dicts}")
@@ -77,10 +80,6 @@ def update_page_restrictions(confluence, page_id: str, user_id_dicts: List[Dict[
 
         headers = {"Content-Type": "application/json"}
         # We pass the list object directly as data. The library seems to json.dump it if it's not None.
-        # But let's be explicit and pass a list, assuming library dumps it.
-        # Actually, if I look closely at `request` method: `data = None if not data else dumps(data)`
-        # If `dumps` is `json.dumps`, then passing a list works.
-        # But to be safe and clear, and ensure headers are right:
 
         confluence.put(url, data=payload, headers=headers, absolute=True)
 
