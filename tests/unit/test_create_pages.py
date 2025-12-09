@@ -31,6 +31,7 @@ class TestCreatePages(unittest.TestCase):
         mock_page.file = mock_page_file
         mock_page.children = None
         mock_page.url = "test/"
+        mock_page.is_index = False
 
 
         mock_section = MagicMock(spec=Section)
