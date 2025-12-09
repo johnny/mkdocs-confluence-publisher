@@ -1,5 +1,7 @@
 import unittest
+import json
 from unittest.mock import MagicMock, call, patch
+from requests.exceptions import HTTPError
 from mkdocs_confluence_publisher.plugin import ConfluencePublisherPlugin
 from mkdocs_confluence_publisher.permissions import update_page_restrictions
 
@@ -163,15 +165,17 @@ class TestProtectedMode(unittest.TestCase):
 
         update_page_restrictions(mock_confluence, '111', [{'accountId': 'acc-123'}])
 
-        mock_confluence.put.assert_called_once_with(
-            'http://confluence.com/rest/experimental/content/111/restriction',
-            data=[{
+        expected_data = json.dumps([{
                 "operation": "update",
                 "restrictions": {
                     "user": [{"type": "known", "accountId": "acc-123"}],
                     "group": []
                 }
-            }],
+            }])
+
+        mock_confluence.put.assert_called_once_with(
+            'http://confluence.com/rest/experimental/content/111/restriction',
+            data=expected_data,
             headers={"Content-Type": "application/json"},
             absolute=True
         )
@@ -184,9 +188,7 @@ class TestProtectedMode(unittest.TestCase):
         users = [{'accountId': 'acc-123'}, {'accountId': 'acc-456'}]
         update_page_restrictions(mock_confluence, '111', users)
 
-        mock_confluence.put.assert_called_once_with(
-            'http://confluence.com/rest/experimental/content/111/restriction',
-            data=[{
+        expected_data = json.dumps([{
                 "operation": "update",
                 "restrictions": {
                     "user": [
@@ -195,10 +197,33 @@ class TestProtectedMode(unittest.TestCase):
                     ],
                     "group": []
                 }
-            }],
+            }])
+
+        mock_confluence.put.assert_called_once_with(
+            'http://confluence.com/rest/experimental/content/111/restriction',
+            data=expected_data,
             headers={"Content-Type": "application/json"},
             absolute=True
         )
+
+    def test_update_page_restrictions_http_error(self):
+        mock_confluence = MagicMock()
+        mock_confluence.url = "http://confluence.com"
+        mock_confluence.url_joiner.side_effect = lambda u, p: f"{u}/{p}"
+
+        # Mock HTTPError
+        mock_response = MagicMock()
+        mock_response.status_code = 403
+        mock_response.text = "Not enough permissions"
+        error = HTTPError("403 Forbidden", response=mock_response)
+
+        mock_confluence.put.side_effect = error
+
+        with self.assertLogs('mkdocs.plugins.confluence_publisher.permissions', level='ERROR') as cm:
+             update_page_restrictions(mock_confluence, '111', [{'accountId': 'acc-123'}])
+
+             self.assertTrue(any("Failed to update restrictions for page 111. Status: 403" in o for o in cm.output))
+             self.assertTrue(any("Response: Not enough permissions" in o for o in cm.output))
 
 if __name__ == '__main__':
     unittest.main()

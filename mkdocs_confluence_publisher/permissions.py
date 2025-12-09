@@ -1,6 +1,7 @@
 import logging
 import json
 from typing import Dict, Any, List
+from requests.exceptions import HTTPError
 
 logger = logging.getLogger('mkdocs.plugins.confluence_publisher.permissions')
 
@@ -70,19 +71,15 @@ def update_page_restrictions(confluence, page_id: str, user_id_dicts: List[Dict[
 
     try:
         logger.debug(f"Updating {restriction_type} restrictions for page {page_id} to users {user_id_dicts}")
-        # Serialize payload to JSON string and set content-type header
-        # The atlassian-python-api put method forwards data to request, which handles json dumping if it's a dict,
-        # but here we have a list, and request method logic for `data` is `data = None if not data else dumps(data)`
-        # if `data` is provided. `dumps` comes from `json` usually.
-        # But wait, `atlassian-python-api` source shows: `data = None if not data else dumps(data)`
-        # If `dumps` is json.dumps, then list is fine.
-        # However, it also sets `headers` to default. We should ensure Content-Type is application/json.
 
         headers = {"Content-Type": "application/json"}
-        # We pass the list object directly as data. The library seems to json.dump it if it's not None.
+        # Serialize the payload to a JSON string because requests requires 'data' to be a string/bytes
+        # when not using the 'json' parameter.
 
-        confluence.put(url, data=payload, headers=headers, absolute=True)
+        confluence.put(url, data=json.dumps(payload), headers=headers, absolute=True)
 
         logger.info(f"Updated {restriction_type} restrictions for page {page_id}")
+    except HTTPError as e:
+        logger.error(f"Failed to update restrictions for page {page_id}. Status: {e.response.status_code}, Response: {e.response.text}")
     except Exception as e:
         logger.error(f"Failed to update restrictions for page {page_id}: {e}")

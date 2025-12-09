@@ -60,6 +60,9 @@ If `protected_mode` is set to `true`, the plugin will set content restrictions o
 - **View Permissions**: Inherited from the space or parent page (unchanged).
 - **Edit Permissions**: Restricted to the publisher + allowed users.
 
+**Requirements:**
+To use `protected_mode`, the Confluence user configured for the plugin must have **Add/Delete Restrictions** permission in the Space (or "Restrict" permission on the target pages). If this permission is missing, the plugin will log an error but continue publishing.
+
 **Note on `allowed_edit_users`:**
 - For **Confluence Cloud**, provide **Account IDs**.
 - For **Confluence Server/Data Center**, provide **Usernames**.
