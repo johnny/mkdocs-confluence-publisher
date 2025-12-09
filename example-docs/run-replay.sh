@@ -96,18 +96,34 @@ fi
 
 echo "Loading recorded expectations from ${MOCKSERVER_EXPECTATIONS_FILE}..."
 # Remove 'secure' field from expectations to ignore SSL mismatches during replay
+# Also remove 'Content-Encoding' header from response to prevent decoding errors
+# if the body is recorded as plain text but the header says gzip.
 FILTERED_EXPECTATIONS=$(mktemp)
 python3 -c "
 import json, sys
+
+def clean_headers(headers):
+    if not headers:
+        return
+    # Headers are a dict of lists, keys might be case-sensitive or not depending on MockServer version
+    # We want to remove 'Content-Encoding' (case-insensitive)
+    keys_to_remove = [k for k in headers.keys() if k.lower() == 'content-encoding']
+    for k in keys_to_remove:
+        headers.pop(k)
+
 try:
     data = json.load(sys.stdin)
     if isinstance(data, list):
         for exp in data:
             if 'httpRequest' in exp:
                 exp['httpRequest'].pop('secure', None)
+            if 'httpResponse' in exp and 'headers' in exp['httpResponse']:
+                clean_headers(exp['httpResponse']['headers'])
     elif isinstance(data, dict):
         if 'httpRequest' in data:
             data['httpRequest'].pop('secure', None)
+        if 'httpResponse' in data and 'headers' in data['httpResponse']:
+            clean_headers(data['httpResponse']['headers'])
     print(json.dumps(data))
 except Exception as e:
     sys.exit(1)
