@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 logger = logging.getLogger('mkdocs.plugins.confluence_publisher.permissions')
 
@@ -28,28 +28,28 @@ def get_current_user_id(confluence) -> Dict[str, Any]:
         logger.warning(f"Failed to fetch user details for {username}: {e}. Falling back to username.")
         return {'username': username}
 
-def update_page_restrictions(confluence, page_id: str, user_id_dict: Dict[str, str], restriction_type: str = 'update'):
+def update_page_restrictions(confluence, page_id: str, user_id_dicts: List[Dict[str, str]], restriction_type: str = 'update'):
     """
     Updates the restrictions for a page.
-    Currently only supports setting 'update' (Edit) restrictions for a single user (the publisher).
+    Sets 'update' (Edit) restrictions for the provided users.
 
     :param confluence: The Confluence object.
     :param page_id: The ID of the page.
-    :param user_id_dict: A dictionary identifying the user (e.g., {'accountId': '...'} or {'username': '...'}).
+    :param user_id_dicts: A list of dictionaries identifying the users (e.g., [{'accountId': '...'}, ...]).
     :param restriction_type: The operation to restrict (default: 'update').
     """
 
-    # Construct the restrictions payload
-    # For Cloud and Server REST API, the structure for PUT is similar
-
-    user_entry = {"type": "known"}
-    user_entry.update(user_id_dict)
+    user_results = []
+    for user_dict in user_id_dicts:
+        entry = {"type": "known"}
+        entry.update(user_dict)
+        user_results.append(entry)
 
     payload = {
         "operation": restriction_type,
         "restrictions": {
             "user": {
-                "results": [user_entry]
+                "results": user_results
             },
             "group": {
                 "results": [] # Clear group restrictions to disallow others
@@ -62,7 +62,7 @@ def update_page_restrictions(confluence, page_id: str, user_id_dict: Dict[str, s
     url = f"content/{page_id}/restriction/byOperation/{restriction_type}"
 
     try:
-        logger.debug(f"Updating {restriction_type} restrictions for page {page_id} to user {user_id_dict}")
+        logger.debug(f"Updating {restriction_type} restrictions for page {page_id} to users {user_id_dicts}")
         confluence.put(url, data=payload)
         logger.info(f"Updated {restriction_type} restrictions for page {page_id}")
     except Exception as e:

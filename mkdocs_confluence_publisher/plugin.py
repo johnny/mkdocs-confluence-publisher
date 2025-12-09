@@ -21,6 +21,7 @@ class ConfluencePublisherPlugin(BasePlugin):
         ('space_key', config_options.Type(str, required=True)),
         ('parent_page_id', config_options.OptionallyRequired()),
         ('protected_mode', config_options.Type(bool, default=False)),
+        ('allowed_edit_users', config_options.Type(list, default=[])),
     )
 
     def __init__(self):
@@ -30,6 +31,7 @@ class ConfluencePublisherPlugin(BasePlugin):
         self.md_to_page: MD_to_Page = {}
         self.page_attachments: Dict[str, List[str]] = {}
         self.current_user_id: Dict[str, Any] = None
+        self.allowed_edit_users_dicts: List[Dict[str, str]] = []
 
     def on_config(self, config):
         if os.environ.get('CONFLUENCE_PUBLISH_DISABLED', 'false').lower() == 'true':
@@ -50,6 +52,17 @@ class ConfluencePublisherPlugin(BasePlugin):
             self.logger.info("Protected mode enabled. Fetching current user details for restrictions.")
             self.current_user_id = get_current_user_id(self.confluence)
             self.logger.debug(f"Current user details for restrictions: {self.current_user_id}")
+
+            # Process allowed_edit_users
+            allowed_users = self.config['allowed_edit_users']
+            if allowed_users:
+                # Infer key type from current_user_id
+                key_type = 'username'
+                if self.current_user_id and 'accountId' in self.current_user_id:
+                    key_type = 'accountId'
+
+                self.allowed_edit_users_dicts = [{key_type: user} for user in allowed_users]
+                self.logger.info(f"Allowed edit users configured: {self.allowed_edit_users_dicts}")
 
         return config
 
@@ -96,7 +109,8 @@ class ConfluencePublisherPlugin(BasePlugin):
 
         if self.config['protected_mode'] and self.current_user_id:
              page_id = self.md_to_page.get(page.file.src_path).id
-             update_page_restrictions(self.confluence, page_id, self.current_user_id)
+             users_to_permit = [self.current_user_id] + self.allowed_edit_users_dicts
+             update_page_restrictions(self.confluence, page_id, users_to_permit)
 
         return markdown
 
