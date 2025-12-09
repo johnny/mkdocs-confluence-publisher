@@ -23,8 +23,12 @@ class ConfluenceClient:
             parent_id=parent_id
         )
 
-    def move_page(self, page_id: str, parent_id: str):
-        return self._confluence.move_page(page_id, parent_id)
+    def update_page(self, page_id: str, title: str, parent_id: str):
+        return self._confluence.update_page(
+            page_id=page_id,
+            title=title,
+            parent_id=parent_id
+        )
 
 class PageCreator:
     def __init__(self, confluence_client: ConfluenceClient, prefix: str, suffix: str, space_key: str, config=None):
@@ -101,7 +105,7 @@ class PageCreator:
                 # Compare as strings to be safe
                 if str(current_parent) != str(parent_id):
                     logger.info(f"Moving page {page_title} from {current_parent} to {parent_id}")
-                    self.confluence_client.move_page(page_id, parent_id)
+                    self.confluence_client.update_page(page_id, page_title, parent_id)
             except Exception as e:
                 logger.warning(f"Failed to check/move page {page_title}: {e}")
 
