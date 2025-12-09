@@ -60,9 +60,11 @@ sleep 2
 echo "Running mkdocs build..."
 export CONFLUENCE_URL="http://localhost:${PROXAY_PORT}"
 mkdocs build
+MKDOCS_EXIT_CODE=$?
 
 # Stop proxay
 echo "Stopping proxay..."
 kill ${PROXAY_PID}
 
 echo "--- Replay complete ---"
+exit $MKDOCS_EXIT_CODE
