@@ -26,6 +26,11 @@ To run the example project and test the development version of the plugin:
    CONFLUENCE_PARENT_PAGE_ID=<your_parent_page_id>
    ```
 
+   If your Confluence instance uses a self-signed certificate, you can also provide a path to a custom CA bundle:
+   ```
+   CA_BUNDLE=<path_to_ca_bundle.pem>
+   ```
+
 3. **Run the build script:**
    ```bash
    ./run-example.sh

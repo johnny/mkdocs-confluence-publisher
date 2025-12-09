@@ -35,6 +35,17 @@ check_env_var "CONFLUENCE_API_TOKEN"
 check_env_var "CONFLUENCE_SPACE_KEY"
 check_env_var "CONFLUENCE_PARENT_PAGE_ID"
 
+# Check for custom CA bundle
+if [ -n "$CA_BUNDLE" ]; then
+  if [ -f "$CA_BUNDLE" ]; then
+    echo "Using custom CA bundle from ${CA_BUNDLE}"
+    export NODE_EXTRA_CA_CERTS="$CA_BUNDLE"
+    export REQUESTS_CA_BUNDLE="$CA_BUNDLE"
+  else
+    echo "Warning: CA_BUNDLE is set to '${CA_BUNDLE}' but the file does not exist."
+  fi
+fi
+
 # Install the plugin in editable mode if not already installed
 if ! pip show mkdocs-confluence-publisher > /dev/null 2>&1; then
   echo "Installing the plugin in editable mode..."
