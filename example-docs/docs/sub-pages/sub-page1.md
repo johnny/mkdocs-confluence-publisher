@@ -14,7 +14,6 @@ graph TD;
     C-->D;
 ```
 
-
 ## Jump Section
 
 * [index.md](../index.md)
@@ -22,3 +21,5 @@ graph TD;
 * [page2.md](../page2.md)
 * [sub-pages/index.md](index.md)
 * [sub-pages/sub-page2.md](sub-page2.md)
+* [sub-pages-no-index/extra-page1.md](../sub-pages-no-index/extra-page1.md)
+* [sub-pages-no-index/extra-page2.md](../sub-pages-no-index/extra-page2.md)

@@ -21,3 +21,5 @@ graph TD;
 * [sub-pages/index.md](sub-pages/index.md)
 * [sub-pages/sub-page1.md](sub-pages/sub-page1.md)
 * [sub-pages/sub-page2.md](sub-pages/sub-page2.md)
+* [sub-pages-no-index/extra-page1.md](sub-pages-no-index/extra-page1.md)
+* [sub-pages-no-index/extra-page2.md](sub-pages-no-index/extra-page2.md)
