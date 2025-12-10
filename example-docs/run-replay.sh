@@ -106,8 +106,10 @@ def clean_headers(headers):
     if not headers:
         return
     # Headers are a dict of lists, keys might be case-sensitive or not depending on MockServer version
-    # We want to remove 'Content-Encoding' (case-insensitive)
-    keys_to_remove = [k for k in headers.keys() if k.lower() == 'content-encoding']
+    # We want to remove 'Content-Encoding' and 'Content-Length' (case-insensitive)
+    # Removing Content-Length is crucial because MockServer re-serializes the body,
+    # and if the recorded length differs from the serialized length, the client may receive truncated data.
+    keys_to_remove = [k for k in headers.keys() if k.lower() in ('content-encoding', 'content-length')]
     for k in keys_to_remove:
         headers.pop(k)
 
