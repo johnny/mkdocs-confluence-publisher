@@ -1,4 +1,5 @@
 import os
+import posixpath
 import logging
 from typing import List, Tuple
 import re
@@ -54,10 +55,17 @@ def generate_confluence_content(markdown: str, md_to_page: MD_to_Page, page) -> 
     # Fix links to relative markdown pages
     def replace_link(match):
         href = match.group(2)
-        if href.endswith('.md') and href in md_to_page:
-            page = md_to_page[href]
-            logger.debug(f"Replaced link to {href} with Confluence page {page}")
-            return f'<ac:link><ri:page ri:content-title="{page.title}" /></ac:link>'
+        if href.endswith('.md'):
+            if href.startswith('/'):
+                target_path = href.lstrip('/')
+            else:
+                current_dir = posixpath.dirname(page.file.src_path)
+                target_path = posixpath.normpath(posixpath.join(current_dir, href))
+
+            if target_path in md_to_page:
+                target_page = md_to_page[target_path]
+                logger.debug(f"Replaced link to {href} with Confluence page {target_page}")
+                return f'<ac:link><ri:page ri:content-title="{target_page.title}" /></ac:link>'
         return match.group(0)
 
     confluence_content = re.sub(r'<a (.*?)href="(.*?)"(.*?)>(.*?)</a>', replace_link, confluence_content)
