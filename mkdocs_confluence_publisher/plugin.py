@@ -1,7 +1,7 @@
 import logging
 import os
 from dotenv import load_dotenv
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from atlassian import Confluence
 from mkdocs.config import config_options
@@ -12,6 +12,7 @@ from .create_pages import create_pages
 from .update_page import update_page
 from .upload_attachments import upload_attachments
 from .types import MD_to_Page
+from .permissions import get_current_user_id, update_page_restrictions
 
 class ConfluencePublisherPlugin(BasePlugin):
     config_scheme = (
@@ -19,6 +20,8 @@ class ConfluencePublisherPlugin(BasePlugin):
         ('confluence_suffix', config_options.Type(str, default='')),
         ('space_key', config_options.Type(str, required=True)),
         ('parent_page_id', config_options.OptionallyRequired()),
+        ('protected_mode', config_options.Type(bool, default=False)),
+        ('allowed_edit_users', config_options.Type(list, default=[])),
     )
 
     def __init__(self):
@@ -27,6 +30,8 @@ class ConfluencePublisherPlugin(BasePlugin):
         self.logger = logging.getLogger('mkdocs.plugins.confluence_publisher')
         self.md_to_page: MD_to_Page = {}
         self.page_attachments: Dict[str, List[str]] = {}
+        self.current_user_id: Dict[str, Any] = None
+        self.allowed_edit_users_dicts: List[Dict[str, str]] = []
 
     def on_config(self, config):
         if os.environ.get('CONFLUENCE_PUBLISH_DISABLED', 'false').lower() == 'true':
@@ -42,6 +47,23 @@ class ConfluencePublisherPlugin(BasePlugin):
             password=os.environ.get('CONFLUENCE_API_TOKEN')
         )
         self.logger.debug("Confluence connection initialized")
+
+        if self.config['protected_mode']:
+            self.logger.info("Protected mode enabled. Fetching current user details for restrictions.")
+            self.current_user_id = get_current_user_id(self.confluence)
+            self.logger.debug(f"Current user details for restrictions: {self.current_user_id}")
+
+            # Process allowed_edit_users
+            allowed_users = self.config['allowed_edit_users']
+            if allowed_users:
+                # Infer key type from current_user_id
+                key_type = 'username'
+                if self.current_user_id and 'accountId' in self.current_user_id:
+                    key_type = 'accountId'
+
+                self.allowed_edit_users_dicts = [{key_type: user} for user in allowed_users]
+                self.logger.info(f"Allowed edit users configured: {self.allowed_edit_users_dicts}")
+
         return config
 
     def on_nav(self, nav, config, files):
@@ -84,6 +106,12 @@ class ConfluencePublisherPlugin(BasePlugin):
         attachments = update_page(markdown, page, self.confluence, self.md_to_page)
         self.page_attachments[page.file.src_path] = attachments
         self.logger.debug(f"Stored page in Confluence. Attachments: {attachments}")
+
+        if self.config['protected_mode'] and self.current_user_id:
+             page_id = self.md_to_page.get(page.file.src_path).id
+             users_to_permit = [self.current_user_id] + self.allowed_edit_users_dicts
+             update_page_restrictions(self.confluence, page_id, users_to_permit)
+
         return markdown
 
     def on_post_page(self, output, page, config):

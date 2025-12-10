@@ -8,6 +8,7 @@ This MkDocs plugin automatically publishes your documentation to Confluence. It 
 - Maintains the hierarchy of your MkDocs site in Confluence
 - Handles attachments referenced in your markdown files
 - Configurable page prefix for easy identification in Confluence
+- Optional protection of published pages (restrict editing)
 
 ## Installation
 
@@ -28,6 +29,10 @@ plugins:
       confluence_suffix: " - MkDocs"  # Optional: Suffix for page titles in Confluence
       space_key: "YOUR_SPACE_KEY"     # Required: Confluence space key
       parent_page_id: 123456          # Required: ID of the parent page in Confluence
+      protected_mode: true            # Optional: Disallow edits by others (default: false)
+      allowed_edit_users:             # Optional: List of additional users allowed to edit
+        - "account-id-1"
+        - "account-id-2"
 ```
 
 ## Environment Variables
@@ -48,12 +53,29 @@ Once configured, the plugin will automatically publish your documentation to Con
 mkdocs build
 ```
 
+## Protected Mode
+
+If `protected_mode` is set to `true`, the plugin will set content restrictions on every published page to allow editing (and attachments) only by the user running the publisher (and any users specified in `allowed_edit_users`).
+
+- **View Permissions**: Inherited from the space or parent page (unchanged).
+- **Edit Permissions**: Restricted to the publisher + allowed users.
+
+**Requirements:**
+To use `protected_mode`, the Confluence user configured for the plugin must have **Add/Delete Restrictions** permission in the Space (or "Restrict" permission on the target pages). If this permission is missing, the plugin will log an error but continue publishing.
+
+**Note on `allowed_edit_users`:**
+- For **Confluence Cloud**, provide **Account IDs**.
+- For **Confluence Server/Data Center**, provide **Usernames**.
+
+This feature helps prevent accidental manual modifications to pages that are managed by the publisher.
+
 ## How It Works
 
 1. **Initialization**: The plugin connects to Confluence using the provided credentials.
 2. **Page Creation**: It creates a structure in Confluence mirroring your MkDocs navigation.
 3. **Content Update**: As it processes each page, it updates the content in Confluence.
 4. **Attachment Handling**: Any attachments referenced in your markdown are uploaded to the corresponding Confluence page.
+5. **Permissions** (if enabled): It updates content restrictions to lock down editing.
 
 ## Logging
 
