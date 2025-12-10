@@ -41,6 +41,6 @@ fi
 
 # Run the mkdocs build
 echo "Running mkdocs build..."
-mkdocs build
+mkdocs build -v
 
 echo "--- MkDocs build complete ---"
