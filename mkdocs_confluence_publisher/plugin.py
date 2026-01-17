@@ -27,6 +27,7 @@ class ConfluencePublisherPlugin(BasePlugin):
         self.logger = logging.getLogger('mkdocs.plugins.confluence_publisher')
         self.md_to_page: MD_to_Page = {}
         self.page_attachments: Dict[str, List[str]] = {}
+        self.page_anchors: Dict[str, Dict[str, str]] = {}  # Maps page_path -> {markdown_anchor -> confluence_anchor}
 
     def on_config(self, config):
         if os.environ.get('CONFLUENCE_PUBLISH_DISABLED', 'false').lower() == 'true':
@@ -75,13 +76,25 @@ class ConfluencePublisherPlugin(BasePlugin):
         self.md_to_page = create_pages(self.confluence, nav.items, prefix, suffix, space_key, parent_page_id,
                                           self.md_to_page)
         self.logger.debug(f"URL to Page ID mapping: {self.md_to_page}")
+        
+        # Preprocess all pages to extract heading anchors
+        self.logger.info("Preprocessing pages to extract heading anchors")
+        from .update_page import extract_heading_anchors
+        for file in files:
+            if file.is_documentation_page():
+                with open(file.abs_src_path, 'r', encoding='utf-8') as f:
+                    markdown_content = f.read()
+                    anchors = extract_heading_anchors(markdown_content)
+                    self.page_anchors[file.src_path] = anchors
+                    self.logger.debug(f"Extracted {len(anchors)} anchors from {file.src_path}")
+        self.logger.info(f"Preprocessed {len(self.page_anchors)} pages for anchor resolution")
 
     def on_page_markdown(self, markdown, page: Page, config, files):
         if not self.enabled:
             return markdown
 
         self.logger.debug(f"Processing markdown for page: {page.file.src_path}")
-        attachments = update_page(markdown, page, self.confluence, self.md_to_page)
+        attachments = update_page(markdown, page, self.confluence, self.md_to_page, self.page_anchors)
         self.page_attachments[page.file.src_path] = attachments
         self.logger.debug(f"Stored page in Confluence. Attachments: {attachments}")
         return markdown
