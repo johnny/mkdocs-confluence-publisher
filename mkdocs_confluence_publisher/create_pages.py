@@ -9,7 +9,23 @@ class ConfluenceClient:
         self._confluence = confluence
 
     def get_page_by_title(self, space_key: str, title: str):
-        return self._confluence.get_page_by_title(space_key, title)
+        try:   
+            return self._confluence.get_page_by_title(space_key, title)
+        except Exception as e:
+            logger.debug(f"get_page_by_title failed, trying CQL: {e}")
+            escaped_title = title.replace("'", "''")
+            cql_query = f"space = '{space_key}' AND title = '{escaped_title}'"
+            result = self._confluence.cql(cql_query, limit=1)
+            if result and 'results' in result and len(result['results']) > 0:
+                page_data = result['results'][0]
+                if 'content' in page_data:
+                    return page_data['content']
+                elif 'id' in page_data:
+                    return page_data
+                else:
+                    logger.debug(f"Unexpected CQL result structure: {page_data}")
+            
+            return None
 
     def create_page(self, space: str, title: str, body: str, parent_id: int):
         return self._confluence.create_page(
