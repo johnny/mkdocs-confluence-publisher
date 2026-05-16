@@ -205,7 +205,7 @@ def generate_confluence_content(markdown: str, md_to_page: MD_to_Page, page, pag
     # Fix links to relative markdown pages
     def replace_link(match):
         href = match.group(2)
-        
+
         # Skip external URLs (http://, https://, etc.)
         if href.startswith(('http://', 'https://', 'ftp://', '//')):
             return match.group(0)
@@ -220,13 +220,17 @@ def generate_confluence_content(markdown: str, md_to_page: MD_to_Page, page, pag
         if page_path.endswith('.md'):
             # Resolve relative path based on current page's source path
             current_dir = os.path.dirname(page.file.src_path)
-            resolved_path = os.path.normpath(os.path.join(current_dir, page_path))
+            if page_path.startswith('/'):
+                resolved_path = page_path.lstrip('/')
+            else:
+                resolved_path = os.path.normpath(os.path.join(current_dir, page_path))
+
             # Normalize path separators to forward slashes (consistent with MkDocs)
             resolved_path = resolved_path.replace(os.sep, '/')
-            
+
             logger.debug(f"Resolving link: href={href}, current_dir={current_dir}, resolved_path={resolved_path}")
             logger.debug(f"Available pages in md_to_page: {list(md_to_page.keys())}")
-            
+
             # Check if the resolved path exists in md_to_page
             if resolved_path in md_to_page:
                 confluence_page = md_to_page[resolved_path]

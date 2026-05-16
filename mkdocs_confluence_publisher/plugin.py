@@ -74,7 +74,7 @@ class ConfluencePublisherPlugin(BasePlugin):
         self.logger.info(
             f"Ensuring pages exist in Confluence with prefix '{prefix}' under parent {parent_page_id} in space: '{space_key}'")
         self.md_to_page = create_pages(self.confluence, nav.items, prefix, suffix, space_key, parent_page_id,
-                                          self.md_to_page)
+                                          self.md_to_page, config)
         self.logger.debug(f"URL to Page ID mapping: {self.md_to_page}")
         
         # Preprocess all pages to extract heading anchors
