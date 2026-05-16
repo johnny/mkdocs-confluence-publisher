@@ -59,7 +59,7 @@ class TestConfluencePublisherPluginConfig(unittest.TestCase):
             mock_confluence.assert_not_called()
             self.assertFalse(plugin.enabled)
 
-    def test_on_config_disables_when_both_modes_are_set(self):
+    def test_on_config_prefers_api_token_auth_when_both_provided(self):
         with patch('mkdocs_confluence_publisher.plugin.Confluence') as mock_confluence:
             plugin = ConfluencePublisherPlugin()
             with patch.dict(
@@ -74,8 +74,11 @@ class TestConfluencePublisherPluginConfig(unittest.TestCase):
             ):
                 plugin.on_config({})
 
-            mock_confluence.assert_not_called()
-            self.assertFalse(plugin.enabled)
+            mock_confluence.assert_called_once_with(
+                url='https://confluence.example.com',
+                token='api-token-123'
+            )
+            self.assertTrue(plugin.enabled)
 
 
 if __name__ == '__main__':

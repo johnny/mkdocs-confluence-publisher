@@ -32,7 +32,10 @@ plugins:
 
 ## Environment Variables
 
-The plugin supports two authentication modes. Use exactly one.
+The plugin supports token auth with fallback to username/password.
+
+If `CONFLUENCE_API_TOKEN` is set, it is used.
+If not set, `CONFLUENCE_USERNAME` + `CONFLUENCE_PASSWORD` must be set.
 
 API token mode:
 

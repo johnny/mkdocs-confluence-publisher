@@ -43,27 +43,18 @@ class ConfluencePublisherPlugin(BasePlugin):
         confluence_password = os.environ.get('CONFLUENCE_PASSWORD')
         confluence_api_token = os.environ.get('CONFLUENCE_API_TOKEN')
 
-        has_token = bool(confluence_api_token)
-        has_username_password = bool(confluence_username and confluence_password)
-        has_username_or_password = bool(confluence_username or confluence_password)
-
-        if has_token and has_username_or_password:
-            self.logger.error(
-                "Both token and username/password credentials are provided. "
-                "Use either API token mode (CONFLUENCE_API_TOKEN) or "
-                "username/password mode (CONFLUENCE_USERNAME and CONFLUENCE_PASSWORD), not both."
-            )
-            self.enabled = False
-            return config
-
-        if has_token:
+        if confluence_api_token:
+            if confluence_username or confluence_password:
+                self.logger.debug(
+                    "CONFLUENCE_API_TOKEN is set. Ignoring CONFLUENCE_USERNAME/CONFLUENCE_PASSWORD."
+                )
             # Atlassian cloud and recent API token flows use bearer token auth.
             self.confluence = Confluence(
                 url=confluence_url,
                 token=confluence_api_token
             )
             self.logger.debug("Initialized Confluence with API token auth")
-        elif has_username_password:
+        elif confluence_username and confluence_password:
             self.confluence = Confluence(
                 url=confluence_url,
                 username=confluence_username,

@@ -30,12 +30,6 @@ fi
 check_env_var "CONFLUENCE_URL"
 
 if [ -n "${CONFLUENCE_API_TOKEN}" ]; then
-  if [ -n "${CONFLUENCE_USERNAME}" ] || [ -n "${CONFLUENCE_PASSWORD}" ]; then
-    echo "Error: API token mode selected, but username/password are also set."
-    echo "Use only CONFLUENCE_API_TOKEN for token mode."
-    echo "Remove CONFLUENCE_USERNAME and CONFLUENCE_PASSWORD, or use username/password mode instead."
-    exit 1
-  fi
   echo "Using API token mode."
 elif [ -n "${CONFLUENCE_USERNAME}" ] && [ -n "${CONFLUENCE_PASSWORD}" ]; then
   echo "Using username/password mode."

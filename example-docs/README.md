@@ -19,7 +19,7 @@ To run the example project and test the development version of the plugin:
 2. **Set up your Confluence environment:**
    Create a `.env` file in the project root with your Confluence credentials:
    ```
-   # Option 1: API token mode
+   # Option 1: API token mode (takes precedence if set)
    CONFLUENCE_URL=<your_confluence_url>
    CONFLUENCE_API_TOKEN=<your_api_token>
 
