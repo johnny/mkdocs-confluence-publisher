@@ -130,6 +130,36 @@ class TestCreatePages(unittest.TestCase):
             call(space='TEST', title='Sub-page 2', body='', parent_id='9000'),
         ])
 
+    def test_create_pages_in_space_skips_section_children_if_section_create_fails(self):
+        mock_confluence_client = MagicMock()
+        mock_confluence_client.get_page_by_title.return_value = None
+        mock_confluence_client.create_page.side_effect = [
+            Exception("Confluence API error"),
+            {'id': '9999'},
+        ]
+
+        page_creator = PageCreator(
+            confluence_client=mock_confluence_client,
+            prefix="",
+            suffix="",
+            space_key="TEST"
+        )
+
+        failing_section = MagicMock(spec=Section)
+        failing_section.title = "Failing Section"
+        child_page = self._mock_page("Child Page", "child.md")
+        failing_section.children = [child_page]
+
+        page_creator.create_pages_in_space([failing_section], '123', {})
+
+        # When section creation fails, the section and its descendants should be skipped.
+        mock_confluence_client.create_page.assert_called_once_with(
+            space='TEST',
+            title='Failing Section',
+            body='<ac:structured-macro ac:name="children" />',
+            parent_id='123'
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

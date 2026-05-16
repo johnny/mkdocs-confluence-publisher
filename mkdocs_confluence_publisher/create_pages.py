@@ -74,6 +74,9 @@ class PageCreator:
                 continue
 
             page_id = self._process_item(item, current_parent_id, md_to_page)
+            if page_id is None:
+                logger.warning(f"Skipping child items for {item.title} due to missing page ID")
+                continue
 
             if isinstance(item, Section) and item.children:
                 logger.debug(f"Processing children of {item.title}")
