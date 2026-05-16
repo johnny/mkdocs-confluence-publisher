@@ -14,7 +14,6 @@ class TestConfluencePublisherPluginConfig(unittest.TestCase):
                 {
                     'CONFLUENCE_URL': 'https://confluence.example.com',
                     'CONFLUENCE_API_TOKEN': 'api-token-123',
-                    'CONFLUENCE_USERNAME': 'ignored@example.com',
                 },
                 clear=True,
             ):
@@ -52,6 +51,24 @@ class TestConfluencePublisherPluginConfig(unittest.TestCase):
                 os.environ,
                 {
                     'CONFLUENCE_URL': 'https://confluence.example.com',
+                },
+                clear=True,
+            ):
+                plugin.on_config({})
+
+            mock_confluence.assert_not_called()
+            self.assertFalse(plugin.enabled)
+
+    def test_on_config_disables_when_both_modes_are_set(self):
+        with patch('mkdocs_confluence_publisher.plugin.Confluence') as mock_confluence:
+            plugin = ConfluencePublisherPlugin()
+            with patch.dict(
+                os.environ,
+                {
+                    'CONFLUENCE_URL': 'https://confluence.example.com',
+                    'CONFLUENCE_API_TOKEN': 'api-token-123',
+                    'CONFLUENCE_USERNAME': 'user@example.com',
+                    'CONFLUENCE_PASSWORD': 'super-secret',
                 },
                 clear=True,
             ):

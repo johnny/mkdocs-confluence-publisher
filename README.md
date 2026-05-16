@@ -32,14 +32,18 @@ plugins:
 
 ## Environment Variables
 
-The plugin requires the following environment variables to be set:
+The plugin supports two authentication modes. Use exactly one.
+
+API token mode:
 
 - `CONFLUENCE_URL`: The base URL of your Confluence instance
-- `CONFLUENCE_USERNAME`: Your Confluence username (required with password auth)
-- `CONFLUENCE_PASSWORD`: Your Confluence password (basic auth)
-- `CONFLUENCE_API_TOKEN`: Your Confluence API token (cloud token auth)
+- `CONFLUENCE_API_TOKEN`: Your Confluence API token
 
-Supply either `CONFLUENCE_PASSWORD` with `CONFLUENCE_USERNAME`, or `CONFLUENCE_API_TOKEN` alone.
+Username/password mode:
+
+- `CONFLUENCE_URL`: The base URL of your Confluence instance
+- `CONFLUENCE_USERNAME`: Your Confluence username
+- `CONFLUENCE_PASSWORD`: Your Confluence password
 
 You can set these in your environment or use a `.env` file.
 
