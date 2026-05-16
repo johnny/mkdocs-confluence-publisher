@@ -28,8 +28,18 @@ fi
 
 # Check for required environment variables
 check_env_var "CONFLUENCE_URL"
-check_env_var "CONFLUENCE_USERNAME"
-check_env_var "CONFLUENCE_API_TOKEN"
+if [ -z "${CONFLUENCE_API_TOKEN}" ] && [ -z "${CONFLUENCE_USERNAME}" ]; then
+  echo "Error: Either CONFLUENCE_API_TOKEN or CONFLUENCE_USERNAME must be set."
+  echo "If using basic auth, set both CONFLUENCE_USERNAME and CONFLUENCE_PASSWORD."
+  echo "Please set one of them in your environment or in the ${ENV_FILE} file."
+  exit 1
+fi
+
+if [ -z "${CONFLUENCE_API_TOKEN}" ] && [ -z "${CONFLUENCE_PASSWORD}" ]; then
+  echo "Error: Either CONFLUENCE_API_TOKEN or CONFLUENCE_PASSWORD must be set."
+  echo "Please set one of them in your environment or in the ${ENV_FILE} file."
+  exit 1
+fi
 check_env_var "CONFLUENCE_SPACE_KEY"
 check_env_var "CONFLUENCE_PARENT_PAGE_ID"
 

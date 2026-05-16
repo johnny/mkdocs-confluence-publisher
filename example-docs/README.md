@@ -20,8 +20,12 @@ To run the example project and test the development version of the plugin:
    Create a `.env` file in the project root with your Confluence credentials:
    ```
    CONFLUENCE_URL=<your_confluence_url>
+   # Username only required for username/password authentication
    CONFLUENCE_USERNAME=<your_username>
+   # Option 1: token auth (Cloud)
    CONFLUENCE_API_TOKEN=<your_api_token>
+   # Option 2: username + password auth
+   # CONFLUENCE_PASSWORD=<your_password>
    ```
 
 3. **Update `mkdocs.yml`:**

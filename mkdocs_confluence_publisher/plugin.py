@@ -37,11 +37,33 @@ class ConfluencePublisherPlugin(BasePlugin):
 
         self.enabled = True
         self.logger.debug("Initializing Confluence connection")
-        self.confluence = Confluence(
-            url=os.environ.get('CONFLUENCE_URL'),
-            username=os.environ.get('CONFLUENCE_USERNAME'),
-            password=os.environ.get('CONFLUENCE_API_TOKEN')
-        )
+
+        confluence_url = os.environ.get('CONFLUENCE_URL')
+        confluence_username = os.environ.get('CONFLUENCE_USERNAME')
+        confluence_password = os.environ.get('CONFLUENCE_PASSWORD')
+        confluence_api_token = os.environ.get('CONFLUENCE_API_TOKEN')
+
+        if confluence_api_token:
+            # Atlassian cloud and recent API token flows use bearer token auth.
+            self.confluence = Confluence(
+                url=confluence_url,
+                token=confluence_api_token
+            )
+            self.logger.debug("Initialized Confluence with API token")
+        elif confluence_username and confluence_password:
+            self.confluence = Confluence(
+                url=confluence_url,
+                username=confluence_username,
+                password=confluence_password
+            )
+            self.logger.debug("Initialized Confluence with username/password")
+        else:
+            self.logger.error(
+                "Confluence credentials not configured. Set CONFLUENCE_USERNAME and CONFLUENCE_PASSWORD or CONFLUENCE_API_TOKEN."
+            )
+            self.enabled = False
+            return config
+
         self.logger.debug("Confluence connection initialized")
         return config
 
