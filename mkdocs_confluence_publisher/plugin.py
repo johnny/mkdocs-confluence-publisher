@@ -43,17 +43,30 @@ class ConfluencePublisherPlugin(BasePlugin):
         confluence_password = os.environ.get('CONFLUENCE_PASSWORD')
         confluence_api_token = os.environ.get('CONFLUENCE_API_TOKEN')
 
+        is_confluence_cloud = confluence_url and ("atlassian.net" in confluence_url or "jira.com" in confluence_url)
+
         if confluence_api_token:
-            if confluence_username or confluence_password:
-                self.logger.debug(
-                    "CONFLUENCE_API_TOKEN is set. Ignoring CONFLUENCE_USERNAME/CONFLUENCE_PASSWORD."
+            if is_confluence_cloud and confluence_username:
+                # Cloud supports API token via basic auth: username=email and token=password
+                self.confluence = Confluence(
+                    url=confluence_url,
+                    username=confluence_username,
+                    password=confluence_api_token
                 )
-            # Atlassian cloud and recent API token flows use bearer token auth.
-            self.confluence = Confluence(
-                url=confluence_url,
-                token=confluence_api_token
-            )
-            self.logger.debug("Initialized Confluence with API token auth")
+                self.logger.debug("Initialized Confluence with Cloud username/API token basic auth")
+            elif is_confluence_cloud and not confluence_username:
+                self.logger.error(
+                    "Cloud Confluence requires CONFLUENCE_USERNAME when CONFLUENCE_API_TOKEN is set."
+                )
+                self.enabled = False
+                return config
+            else:
+                # Non-cloud: use bearer token session
+                self.confluence = Confluence(
+                    url=confluence_url,
+                    token=confluence_api_token
+                )
+                self.logger.debug("Initialized Confluence with API token auth")
         elif confluence_username and confluence_password:
             self.confluence = Confluence(
                 url=confluence_url,

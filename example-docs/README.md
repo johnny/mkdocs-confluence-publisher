@@ -22,6 +22,8 @@ To run the example project and test the development version of the plugin:
    # Option 1: API token mode (takes precedence if set)
    CONFLUENCE_URL=<your_confluence_url>
    CONFLUENCE_API_TOKEN=<your_api_token>
+   # For atlassian.net / jira.com URLs, also set CONFLUENCE_USERNAME (email)
+   # CONFLUENCE_USERNAME=<your_username>
 
    # Option 2: username/password mode
    CONFLUENCE_USERNAME=<your_username>

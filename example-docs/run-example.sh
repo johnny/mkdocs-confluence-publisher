@@ -31,6 +31,13 @@ check_env_var "CONFLUENCE_URL"
 
 if [ -n "${CONFLUENCE_API_TOKEN}" ]; then
   echo "Using API token mode."
+  if [[ "${CONFLUENCE_URL}" == *atlassian.net* || "${CONFLUENCE_URL}" == *jira.com* ]]; then
+    if [ -z "${CONFLUENCE_USERNAME}" ]; then
+      echo "Cloud URL detected. CONFLUENCE_USERNAME is required when using CONFLUENCE_API_TOKEN."
+      exit 1
+    fi
+    echo "Cloud URL detected: using username + API token as password."
+  fi
 elif [ -n "${CONFLUENCE_USERNAME}" ] && [ -n "${CONFLUENCE_PASSWORD}" ]; then
   echo "Using username/password mode."
 elif [ -n "${CONFLUENCE_USERNAME}" ] || [ -n "${CONFLUENCE_PASSWORD}" ]; then

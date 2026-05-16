@@ -32,15 +32,19 @@ plugins:
 
 ## Environment Variables
 
-The plugin supports token auth with fallback to username/password.
+The plugin resolves credentials in this order:
 
-If `CONFLUENCE_API_TOKEN` is set, it is used.
-If not set, `CONFLUENCE_USERNAME` + `CONFLUENCE_PASSWORD` must be set.
+1. If `CONFLUENCE_API_TOKEN` is set:
+   - For Cloud Confluence (`atlassian.net` / `jira.com` URLs), set `CONFLUENCE_USERNAME`
+     (typically your email) and the token is used as the password.
+   - For non-cloud Confluence, `CONFLUENCE_API_TOKEN` is used as a bearer token.
+2. If no API token is set, use `CONFLUENCE_USERNAME` + `CONFLUENCE_PASSWORD`.
 
 API token mode:
 
 - `CONFLUENCE_URL`: The base URL of your Confluence instance
 - `CONFLUENCE_API_TOKEN`: Your Confluence API token
+- `CONFLUENCE_USERNAME` (required only for Cloud URLs): Your Confluence username/email
 
 Username/password mode:
 
