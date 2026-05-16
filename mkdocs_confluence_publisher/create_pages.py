@@ -38,7 +38,7 @@ class PageCreator:
         self.space_key = space_key
         self.config = config
 
-    def create_pages_in_space(self, items, parent_id, md_to_page: MD_to_Page):
+    def create_pages_in_space(self, items, parent_id, md_to_page: MD_to_Page, collapse_to_index: bool = False):
         index_item = None
         for item in items:
             if isinstance(item, Page) and item.title is None:
@@ -49,28 +49,28 @@ class PageCreator:
                 else:
                     logger.warning("Config not available, cannot read source to determine title.")
 
-            if isinstance(item, Page) and item.is_index:
+            if collapse_to_index and isinstance(item, Page) and item.is_index:
                 index_item = item
 
         current_parent_id = parent_id
 
-        if index_item:
+        if collapse_to_index and index_item:
             logger.debug(f"Found index page: {index_item.title}, processing it first")
             page_id = self._process_item(index_item, parent_id, md_to_page)
             if page_id:
                 current_parent_id = page_id
 
         for item in items:
-            if item == index_item:
+            if collapse_to_index and item == index_item:
                 continue
 
             # Check if this item is a Section that contains an index page
             # If so, we skip creating the Section page and recurse directly
             if isinstance(item, Section) and self._section_has_index(item):
                 logger.debug(f"Section {item.title} has index page, skipping section page creation")
-                # Recurse using the current_parent_id (which is either the parent_id or the index_item's ID)
-                # This effectively collapses the hierarchy
-                self.create_pages_in_space(item.children, current_parent_id, md_to_page)
+                # Recurse into the section using collapse semantics so only this
+                # section's subtree is flattened under its index page.
+                self.create_pages_in_space(item.children, current_parent_id, md_to_page, collapse_to_index=True)
                 continue
 
             page_id = self._process_item(item, current_parent_id, md_to_page)
