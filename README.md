@@ -32,11 +32,25 @@ plugins:
 
 ## Environment Variables
 
-The plugin requires the following environment variables to be set:
+The plugin resolves credentials in this order:
+
+1. If `CONFLUENCE_API_TOKEN` is set:
+   - For Cloud Confluence (`atlassian.net` / `jira.com` URLs), set `CONFLUENCE_USERNAME`
+     (typically your email) and the token is used as the password.
+   - For non-cloud Confluence, `CONFLUENCE_API_TOKEN` is used as a bearer token.
+2. If no API token is set, use `CONFLUENCE_USERNAME` + `CONFLUENCE_PASSWORD`.
+
+API token mode:
+
+- `CONFLUENCE_URL`: The base URL of your Confluence instance
+- `CONFLUENCE_API_TOKEN`: Your Confluence API token
+- `CONFLUENCE_USERNAME` (required only for Cloud URLs): Your Confluence username/email
+
+Username/password mode:
 
 - `CONFLUENCE_URL`: The base URL of your Confluence instance
 - `CONFLUENCE_USERNAME`: Your Confluence username
-- `CONFLUENCE_API_TOKEN`: Your Confluence API token
+- `CONFLUENCE_PASSWORD`: Your Confluence password
 
 You can set these in your environment or use a `.env` file.
 

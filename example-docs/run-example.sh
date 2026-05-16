@@ -28,8 +28,28 @@ fi
 
 # Check for required environment variables
 check_env_var "CONFLUENCE_URL"
-check_env_var "CONFLUENCE_USERNAME"
-check_env_var "CONFLUENCE_API_TOKEN"
+
+if [ -n "${CONFLUENCE_API_TOKEN}" ]; then
+  echo "Using API token mode."
+  if [[ "${CONFLUENCE_URL}" == *atlassian.net* || "${CONFLUENCE_URL}" == *jira.com* ]]; then
+    if [ -z "${CONFLUENCE_USERNAME}" ]; then
+      echo "Cloud URL detected. CONFLUENCE_USERNAME is required when using CONFLUENCE_API_TOKEN."
+      exit 1
+    fi
+    echo "Cloud URL detected: using username + API token as password."
+  fi
+elif [ -n "${CONFLUENCE_USERNAME}" ] && [ -n "${CONFLUENCE_PASSWORD}" ]; then
+  echo "Using username/password mode."
+elif [ -n "${CONFLUENCE_USERNAME}" ] || [ -n "${CONFLUENCE_PASSWORD}" ]; then
+  echo "Error: Username/password mode requires both CONFLUENCE_USERNAME and CONFLUENCE_PASSWORD."
+  echo "Please set both values in your environment or in the ${ENV_FILE} file."
+  exit 1
+else
+  echo "Error: No credentials found."
+  echo "Set CONFLUENCE_API_TOKEN for token mode,"
+  echo "or both CONFLUENCE_USERNAME and CONFLUENCE_PASSWORD for username/password mode."
+  exit 1
+fi
 check_env_var "CONFLUENCE_SPACE_KEY"
 check_env_var "CONFLUENCE_PARENT_PAGE_ID"
 
