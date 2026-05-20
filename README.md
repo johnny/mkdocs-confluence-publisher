@@ -18,7 +18,6 @@ pip install mkdocs-confluence-publisher
 ```
 
 ## Configuration
-
 Add the following to your `mkdocs.yml`:
 
 ```yaml
@@ -83,6 +82,51 @@ Set to `DEBUG` for more detailed logging information.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Example how to start from scratch
+Assuming you don't have installed mkdoc and just started to work with it.
+### Installation
+```bash
+pip install mkdocs-confluence-publisher
+pip install mkdocs
+mkdocs new testFolder
+cd testFolder
+```
+### Minimum file set
+`mkdocs.yml`
+```yaml
+site_name: My Docs
+site_url: https://someurl
+
+nav:
+  - my test: my test.md
+  - Somesection:
+    - test3: test3.md
+    - test4: subdir/test4.md
+plugins:
+  - confluence-publisher:
+      confluence_prefix: "MkDocs - "  # Optional: Prefix for page titles in Confluence
+      space_key: "YOUR_SPACE_KEY"     # Required: Confluence space key
+      parent_page_id: 123456          # Required: ID of the parent page in Confluence
+```
+### cd `docs` folder 
+create files: `my test.md`, `test3.md`, create folder 'subdir', `subdir\test4.md`
+### add some text inside created files using markdown (google mkdocs example like)
+
+```
+textTest
+Paragraphs are separated by a blank line.```
+
+### Set `Environment Variables` (check above)
+```bash
+mkdocs build```
+
+## Nuances of work:
+1. It doesn't delete corrsponding page if you deleted `my test.md`
+2. It doesn't move page if you changed\deleted section, need delete page on adn
+3. On exection without changes in file - it will update previosly updated page.  It will not touch other non changed pages/files
+
+
 
 ## License
 
