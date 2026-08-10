@@ -11,8 +11,9 @@ setup(
     install_requires=[
         'mkdocs>=1.0',
         'atlassian-python-api>=3.14.0',
-        'mistune',
-        'md2cf',
+        'mistune==0.8.4',
+        'md2cf==1.0.2',
+        'PyYAML>=6.0.3',
         'python-dotenv',
         'mermaid-py'
     ],
